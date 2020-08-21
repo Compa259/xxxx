@@ -1,9 +1,8 @@
-import requests as rq
-import mysql.connector
 from sqlalchemy import create_engine
-
+import requests as rq
 from common.database.sql_common import sql
-from models.location_models import MappedProvinceTestDucnm, City
+from models.location_models import MappedProvince
+from multiprocessing import Pool
 
 s1 = u'ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝàáâãèéêìíòóôõùúýĂăĐđĨĩŨũƠơƯưẠạẢảẤấẦầẨẩẪẫẬậẮắẰằẲẳẴẵẶặẸẹẺẻẼẽẾếỀềỂểỄễỆệỈỉỊịỌọỎỏỐốỒồỔổỖỗỘộỚớỜờỞở' \
      u'ỠỡỢợỤụỦủỨứỪừỬửỮữỰựỲỳỴỵỶỷỸỹ '
@@ -24,7 +23,7 @@ def remove_accents(input_str):
 
 def format_address(address):
     data = rq.get(
-        f'https://geocode.search.hereapi.com/v1/geocode?q={address}&apiKey={HERE_API_KEY}').json()
+        f'https://geocode.search.hereapi.com/v1/geocode?q={remove_accents(address)}&apiKey={HERE_API_KEY}').json()
     try:
         detail_address = data['items'][0]['address']
         return_value = {
@@ -40,47 +39,56 @@ def format_address(address):
     return return_value
 
 
+def map_row(row):
+    result = []
+    for i in range(len(crm_provinces_name)):
+        if int(row[9]) == int(crm_provinces_name[i]['id']):
+            try:
+                heremap_city = format_address(row[3])['city']
+            except:
+                print(row[3])
+                heremap_city = None
+            mapped_province = MappedProvince(
+                id=row[0],
+                d_city_id=row[1],
+                d_domain_id=row[2],
+                d_city_name=row[3],
+                d_correct_city_name=heremap_city,
+                d_value=row[4],
+                d_id_region_in_domain=row[5],
+                c_id=row[6],
+                c_name=row[7],
+                c_region_id=row[8],
+                c_province_id=row[9],
+                crm_province_name=crm_provinces_name[i]['name'],
+            )
+            result.append(mapped_province)
+            break
+    return result
+
+
 if __name__ == '__main__':
-    # lay list province cua crm
-    mydb = mysql.connector.connect(
-        host="35.198.217.65",
-        user="okr",
-        password="okr-tripi@1231",
-        database="crm"
-    )
-
-    mycursor = mydb.cursor()
-
-    mycursor.execute("SELECT * FROM province WHERE country_id = 1")
-
-    myresult = mycursor.fetchall()
+    with open('crm_provinces.txt', 'r') as f:
+        lines = f.readlines()
 
     crm_provinces_name = []
-    for x in myresult:
-        crm_province_info = {'id': int(x[0]), 'name': x[2]}
+    for line in lines:
+        x = line.split('#')
+        crm_province_info = {'id': int(x[0]), 'name': x[1]}
         crm_provinces_name.append(crm_province_info)
+
     connection_str = 'clickhouse://ducnm:H7R67ciSgvcyxCNodD9c@13.229.34.221:8128/crawler_db?charset=utf8'
-    # connection_str = 'clickhouse+native://streamsets:bWqFHseP8KjIZw+RhzQL@172.31.25.244:9000/crawler_db?charset=utf8'
     engine = create_engine(connection_str)
-    sql_query = """select * from city"""
-    # result = engine.execute(f'{sql_query} FORMAT TabSeparatedWithNamesAndTypes')
+    sql_query = """select * from domain_city_info d left join city_pro c on c.id = toInt32(d.city_id) FORMAT TabSeparatedWithNamesAndTypes"""
     result = engine.execute(f'{sql_query}')
     records = result.fetchall()
     print(len(records))
-    insert_mapped_province = []
-    for row in records:
-        for i in range(len(crm_provinces_name)):
-            if str(row[1]).strip() == crm_provinces_name[i]['name']:
-                province_info = City(
-                    id=row[0],
-                    name=row[1],
-                    region_id=row[2],
-                    province_id=crm_provinces_name[i]['id']
-                )
-                insert_mapped_province.append(province_info)
-                break
+    p = Pool(10)
+    result = p.map(map_row, records)
+    total_result = []
+    for arr in result:
+        total_result += arr
     sess = sql.get_session()
-    sess.bulk_save_objects(insert_mapped_province)
+    sess.bulk_save_objects(total_result)
     sess.commit()
     sess.close()
-

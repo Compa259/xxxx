@@ -1,0 +1,49 @@
+15#Bà Rịa
+20#Bảo Lộc
+32#Biên Hòa
+40#Buôn Ma Thuột
+43#Cam Ranh
+47#Cao Lãnh
+10#Cẩm Phả
+6#Châu Đốc
+34#Chí Linh
+22#Dĩ An
+20#Đà Lạt
+50#Điện Biên Phủ
+44#Đông Hà
+12#Đồng Hới
+35#Đồng Xoài
+54#Gia Nghĩa
+10#Hạ Long
+2#Hà Tiên
+28#Hội An
+1#Huế
+32#Long Khánh
+6#Long Xuyên
+10#Móng Cái
+42#Mỹ Tho
+51#Ngã Bảy
+43#Nha Trang
+17#Phan Rang - Tháp Chàm
+23#Phan Thiết
+36#Phủ Lý
+39#Phúc Yên
+4#Pleiku
+5#Quy Nhơn
+2#Rạch Giá
+47#Sa Đéc
+16#Sầm Sơn
+55#Sông Công
+60#Tam Điệp
+28#Tam Kỳ
+31#Tân An
+22#Thủ Dầu Một
+22#Thuận An
+58#Tuy Hòa
+10#Uông Bí
+51#Vị Thanh
+49#Việt Trì
+7#Vinh
+39#Vĩnh Yên
+15#Vũng Tàu
+2#Phú Quốc
